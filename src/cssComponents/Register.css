@@ -1,0 +1,61 @@
+.register {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.register input,
+.register select {
+  margin-bottom: 10px;
+  padding: 10px;
+  width: 300px;
+  border-radius: 10px;
+}
+
+.register button {
+  padding: 10px;
+  background-color: #939c93;
+  max-width: 100%;
+  width: 100px;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.register button:hover {
+  color: #000;
+}
+
+.error {
+  color: red;
+  margin-bottom: 10px;
+}
+
+@media (max-width: 768px) {
+  .register {
+    padding: 15px;
+  }
+
+  .register input,
+  .register select {
+    width: 100%;
+    padding: 8px;
+  }
+
+  .register button {
+    padding: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .register input,
+  .register select {
+    width: 90%;
+  }
+
+  .register button {
+    width: 90%;
+    border-radius: 10px;
+  }
+}
