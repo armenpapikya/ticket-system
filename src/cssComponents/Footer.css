@@ -1,12 +1,12 @@
 .footer {
     text-align: center;
     padding: 20px;
-    background-color: #f1f1f1;
+    background-color: #2f7f32;
     position: fixed;
     bottom: 0;
     width: 100%;
-    font-size: 25px;
-    color: #333;
+    font-size: 15px;
+    color: #fbf8f8;
   }
   
   @media (max-width: 768px) {
