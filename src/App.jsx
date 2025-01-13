@@ -6,6 +6,7 @@ import Home from './components/Home';
 import Login from './components/Login';
 import Register from './components/Register';
 import './App.css';
+import Footer from './components/Footer';
 
 const App = () => {
   const [role, setRole] = useState(null);
@@ -38,6 +39,7 @@ const App = () => {
         <Route path="/login" element={<Login onLogin={handleLogin} />} />
         <Route path="/register" element={<Register />} />
       </Routes>
+      <Footer />
     </Router>
   );
 };
