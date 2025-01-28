@@ -10,7 +10,6 @@ CREATE TABLE users (
     role ENUM('user', 'admin') DEFAULT 'user',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
 CREATE TABLE tickets (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -43,3 +42,4 @@ CREATE TABLE logs (
     FOREIGN KEY (user_id)
         REFERENCES users (id)
 );
+
