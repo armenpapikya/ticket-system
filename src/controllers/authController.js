@@ -20,6 +20,8 @@ export const register = async (req, res) => {
 };
 
 export const login = async (req, res) => {
+  console.log('Login request body:', req.body);
+
   const { email, password } = req.body;
 
   try {
@@ -36,7 +38,7 @@ export const login = async (req, res) => {
     const token = generateJWT(user.id, user.role);
     res.status(200).json({ message: 'Մուտք գործած եք', token, username: user.username, role: user.role });
   } catch (err) {
-    console.error('Error logging in user:', err);
+    console.error('Error logging in user:', err.stack || err);
     res.status(500).json({ error: 'Սխալ է տեղի ունեցել' });
   }
 };

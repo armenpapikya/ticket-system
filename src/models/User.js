@@ -10,7 +10,8 @@ export const createUser = async (username, email, password) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const query = 'INSERT INTO users (username, email, password) VALUES (?, ?, ?)';
     console.log(`Executing query: ${query}`);
-    const [result] = await db.query(query, [username, email, hashedPassword]);
+    
+    const [result] = await db.promise().query(query, [username, email, hashedPassword]);
     console.log('User created:', result);
     return result;
   } catch (error) {
