@@ -1,6 +1,6 @@
-CREATE DATABASE ticketing_system;
+CREATE DATABASE ticket_system;
 
-USE ticketing_system;
+USE ticket_system;
 
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -42,4 +42,4 @@ CREATE TABLE logs (
     FOREIGN KEY (user_id)
         REFERENCES users (id)
 );
-
+SELECT * FROM users WHERE email = 'go@gmail.com';

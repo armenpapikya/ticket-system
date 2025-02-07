@@ -12,22 +12,24 @@ const Login = ({ onLogin }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5000/login', {
-        username: username,
+      console.log('Login attempt with', { email: username, password });
+      const response = await axios.post('http://localhost:5000/api/auth/login', {
+        email: username,
         password: password,
       });
 
       if (response && response.data) {
-        const { data } = response;
-        localStorage.setItem('username', data.username);
-        localStorage.setItem('role', data.role);
-        onLogin(data.role);
+        const { token, username, role } = response.data;
+        localStorage.setItem('token', token);
+        localStorage.setItem('username', username);
+        localStorage.setItem('role', role);
+        onLogin(role);
       } else {
-        setError('Login failed. No data returned.');
+        setError('Մուտք գործումը ձախողվեց, տվյալներ վերադարձված չեն:');
       }
     } catch (error) {
-      setError('Invalid credentials or server error!');
-      console.error(error);
+      console.error('Login error:', error);
+      setError('Սխալ մուտքագրված տվյալներ կամ սերվերի խնդիր!');
     }
   };
 
@@ -39,7 +41,7 @@ const Login = ({ onLogin }) => {
         type="text"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
-        placeholder="Օգտատեր"
+        placeholder="Էլ․ հասցե"
       />
       <input
         type="password"

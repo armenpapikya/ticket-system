@@ -1,51 +1,58 @@
 /* eslint-disable no-unused-vars */
+/* eslint-disable react/prop-types */
 import React, { useState } from 'react';
 import axios from 'axios';
 import '../cssComponents/Register.css';
 
-const Register = () => {
+const Register = ({ onRegister }) => {
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState('user');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
 
-  const handleRegister = async () => {
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setError('');
+    setMessage('');
+
     try {
-      const response = await axios.post('http://localhost:5000/register', {
+      const response = await axios.post('http://localhost:5000/api/auth/register', {
         username,
-        password,
         email,
-        role,
+        password,
+      }, {
+        headers: { 'Content-Type': 'application/json' }
       });
 
-      alert('Գրանցումն ավարտվեց հաջողությամբ');
-    } catch (error) {
-      if (error.response) {
-        setError(error.response.data.message || 'Something went wrong');
-      } else if (error.request) {
-        setError('Server not reachable or no response');
+      if (response && response.data) {
+        setMessage(response.data.message);
+        onRegister && onRegister();
       } else {
-        setError('Unexpected error occurred');
+        setError('Գրանցումը ձախողվեց, ստուգեք տվյալները։');
       }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setError(error.response?.data?.error || 'Սերվերի խնդիր');
     }
-  };  
+  };
 
   return (
     <div className="register">
-      <h1>Գրանցվել</h1>
+      <h1>Գրանցում</h1>
       {error && <div className="error">{error}</div>}
+      {message && <div className="message">{message}</div>}
       <input
         type="text"
         value={username}
         onChange={(e) => setUsername(e.target.value)}
-        placeholder="Օգտատեր"
+        placeholder="Օգտագործողի անուն"
       />
       <input
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="Էլ. փոստ"
+        placeholder="Էլ․ հասցե"
       />
       <input
         type="password"
@@ -53,10 +60,6 @@ const Register = () => {
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Գաղտնաբառ"
       />
-      <select value={role} onChange={(e) => setRole(e.target.value)}>
-        <option value="user">Օգտատեր</option>
-        <option value="admin">Ադմին</option>
-      </select>
       <button onClick={handleRegister}>Գրանցվել</button>
     </div>
   );
