@@ -1,47 +1,73 @@
+/* eslint-disable react-refresh/only-export-components */
+/* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import React, { useEffect, useState, createContext, useContext } from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import axios from 'axios';
 import Header from './components/Header';
-import Home from './components/Home';
 import Login from './components/Login';
+import Home from './components/Home';
 import Register from './components/Register';
-import './App.css';
+import AdminPanel from './components/AdminPanel';
+import Profile from './components/Profile';
+import TicketForm from './components/TicketFrom';
 import Footer from './components/Footer';
+import TicketList from './components/TicketList';
+
+const AuthContext = createContext();
+export const useAuth = () => useContext(AuthContext);
+
+const ProtectedRoute = ({ children, requiredRole }) => {
+    const { user } = useAuth();
+
+    if (!user) return <Navigate to="/login" />;
+    if (requiredRole && user.role !== requiredRole) return <Navigate to="/" />;
+    
+    return children;
+};
 
 const App = () => {
-  const [role, setRole] = useState(null);
+    const [user, setUser] = useState(null);
 
-  useEffect(() => {
-    const storedRole = localStorage.getItem('role');
-    if (storedRole) {
-      setRole(storedRole);
-    }
-  }, []);
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            setUser({
+                username: localStorage.getItem('username'),
+                role: localStorage.getItem('role')
+            });
+        }
+    }, []);
 
-  const handleLogin = () => {
-    setRole(localStorage.getItem('role'));
-  };
+    const login = (role) => {
+        setUser({
+            username: localStorage.getItem('username'),
+            role
+        });
+    };
 
-  const handleLogout = () => {
-    setRole(null);
-    localStorage.removeItem('role');
-    localStorage.removeItem('token');
-  };
+    const logout = () => {
+        localStorage.clear();
+        setUser(null);
+    };
 
-  return (
-    <Router>
-      <Header />
-      <Routes>
-        <Route
-          path="/"
-          element={role ? <Home role={role} onLogout={handleLogout} /> : <Login onLogin={handleLogin} />}
-        />
-        <Route path="/login" element={<Login onLogin={handleLogin} />} />
-        <Route path="/register" element={<Register />} />
-      </Routes>
-      <Footer />
-    </Router>
-  );
+    return (
+        <AuthContext.Provider value={{ user, login, logout }}>
+            <Router>
+                <Header role={user?.role} logout={logout} />
+                <Routes>
+                    <Route path="/" element={<Home />} />
+                    <Route path="/login" element={<Login onLogin={login} />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/register" element={<Register />} />
+                    <Route path="/profile/create-ticket" element={<TicketForm />} />
+                    <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPanel /></ProtectedRoute>} />
+                </Routes>
+                {user && <TicketList />}
+                <Footer />
+            </Router>
+        </AuthContext.Provider>
+    );
 };
 
 export default App;

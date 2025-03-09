@@ -1,11 +1,37 @@
 .app {
-  font-family: Arial, sans-serif;
+  font-family: 'Arial', sans-serif;
   background-color: #f8f9fa;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .app h1 {
   text-align: center;
   margin-top: 50px;
   font-size: 48px;
+  color: #343a40;
+  text-transform: uppercase;
+}
+
+.app .container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  .app h1 {
+    font-size: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app h1 {
+    font-size: 28px;
+  }
 }

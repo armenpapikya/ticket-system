@@ -15,24 +15,36 @@ export const createUser = async (username, email, password) => {
     console.log('User created:', result);
     return result;
   } catch (error) {
-    console.error('Error creating user:', error);
-    throw error;
+    console.error('Error creating user:', error.message || error);
+    throw new Error('Սխալ է տեղի ունեցել օգտատեր ստեղծելիս: Փորձեք ևս մեկ անգամ');
   }
 };
 
-export const getUserByEmail = (email) => {
-  return new Promise((resolve, reject) => {
-    db.query('SELECT * FROM users WHERE email = ?', [email], (err, results) => {
-      if (err) {
-        console.error('Error fetching user:', err);
-        return reject(err);
-      }
-      console.log('User fetch result:', results);
-      resolve(results[0]);
-    });
-  });
+export const getUserByEmail = async (email) => {
+  try {
+    const [results] = await db.promise().query('SELECT * FROM users WHERE email = ?', [email]);
+    
+    if (results.length === 0) {
+      return null;
+    }
+    
+    console.log('User fetch result:', results);
+    return results[0];
+  } catch (error) {
+    console.error('Error fetching user:', error.message || error);
+    throw new Error('Սխալ է տեղի ունեցել օգտատեր որոնելիս: Փորձեք ևս մեկ անգամ');
+  }
 };
 
 export const generateJWT = (userId, role) => {
-  return jwt.sign({ userId, role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+  try {
+    const payload = { userId, role };
+    const options = { expiresIn: '1h' };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, options);
+    console.log('Generated JWT:', token);
+    return token;
+  } catch (error) {
+    console.error('Error generating JWT:', error.message || error);
+    throw new Error('Սխալ է տեղի ունեցել JWT ստեղծելիս');
+  }
 };
