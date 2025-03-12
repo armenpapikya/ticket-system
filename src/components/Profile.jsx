@@ -9,34 +9,42 @@ const Profile = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setError('Նախքան պրոֆիլի բեռնումը խնդրում ենք մուտք գործել');
-          setLoading(false);
-          return;
-        }
-
-        const response = await axios.get("http://localhost:5000/api/users/profile", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setUser(response.data);
-      } catch (err) {
-        setError('Պրոֆիլը բեռնելիս սխալ է տեղի ունեցել: ' + err.message);
-        console.error(err);
-      } finally {
+  const fetchProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Նախքան պրոֆիլի բեռնումը խնդրում ենք մուտք գործել');
         setLoading(false);
+        return;
       }
-    };
 
+      const response = await axios.get("http://localhost:5000/api/users/profile", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 200) {
+        setUser(response.data);
+      }
+    } catch (err) {
+      if (err.response && err.response.status === 429) {
+        setError('Երրորդ կողմի պրոֆիլը հաճախակի հարցումների պատճառով չի կարող բեռնել։ Խնդրում ենք մի փոքր սպասել։');
+      } else {
+        setError('Պրոֆիլը բեռնելիս սխալ է տեղի ունեցել: ' + err.message);
+      }
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchProfile();
   }, []);
 
   if (loading) return <p>Բեռնում...</p>;
+
   if (error) return <div className="error">{error}</div>;
 
   return (
@@ -45,10 +53,7 @@ const Profile = () => {
         <div className="profile-info">
           <h1>Պրոֆիլ</h1>
           <TicketFrom />
-          <p><strong>ID:</strong> {user.id}</p>
-          <p><strong>Օգտատեր:</strong> {user.username}</p>
-          <p><strong>Էլ․ հասցե:</strong> {user.email}</p>
-          <p><strong>Դերը:</strong> {user.role}</p>
+          <p>{user.username}</p>
         </div>
       ) : (
         <p>Պրոֆիլը չի գտնվել:</p>

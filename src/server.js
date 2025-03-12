@@ -20,14 +20,13 @@ if (!process.env.DB_HOST ||
   !process.env.DB_USER ||
   !process.env.DB_PASSWORD ||
   !process.env.DB_NAME ||
-  !process.env.JWT_SECRET
-  || !process.env.REFRESH_SECRET) {
+  !process.env.JWT_SECRET ||
+  !process.env.REFRESH_SECRET) {
   console.error("❌ Missing required environment variables!");
   process.exit(1);
 }
 
 const redisClient = redis.createClient();
-
 const logger = winston.createLogger({
   level: 'info',
   transports: [
@@ -43,8 +42,8 @@ const corsOptions = {
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 };
-app.use(cors(corsOptions));
 
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
@@ -81,8 +80,8 @@ app.get("/api/user", (req, res) => {
 
 app.post("/api/auth/login", async (req, res) => {
   console.log("🔹 Received login request:", req.body);
-
   const { email, password } = req.body;
+
   if (!email || !password) {
     return res.status(400).json({ message: "Please provide email and password." });
   }
@@ -126,8 +125,8 @@ app.post("/api/auth/login", async (req, res) => {
 
 app.post("/api/auth/register", async (req, res) => {
   console.log("🔹 Received register request:", req.body);
-
   const { email, password, username } = req.body;
+
   if (!email || !password || !username) {
     return res.status(400).json({ message: "All fields are required" });
   }
@@ -202,6 +201,8 @@ app.get("/api/users/profile", authMiddleware, async (req, res) => {
     res.status(500).json({ message: "Internal Server Error." });
   }
 });
+
+app.use("/api/tickets", authMiddleware, ticketRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

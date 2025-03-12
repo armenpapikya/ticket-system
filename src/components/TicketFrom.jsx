@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import "../cssComponents/TicketFrom.css";
 
-
 const TicketForm = ({ onCreate }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');

@@ -3,12 +3,32 @@ import db from "../config/db.js";
 import authMiddleware from "../middleware/authMiddleware.js";
 import { body, validationResult } from "express-validator";
 
+const checkAdmin = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const [user] = await db.query("SELECT isAdmin FROM users WHERE id = ?", [userId]);
+
+    if (user.length === 0 || !user[0].isAdmin) {
+      return res.status(403).json({ message: "You do not have permission to perform this action." });
+    }
+
+    next();
+  } catch (error) {
+    console.error("Error checking admin:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 const router = express.Router();
 
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
-    const [tickets] = await db.query("SELECT * FROM tickets WHERE user_id = ?", [userId]);
+    const [tickets] = await db.query(`
+      SELECT tickets.id, tickets.user_id, tickets.title, tickets.description, tickets.status, tickets.created_at, users.username AS createdBy
+      FROM tickets
+      LEFT JOIN users ON tickets.user_id = users.id
+      WHERE tickets.user_id = ?`, [userId]);
 
     if (tickets.length === 0) {
       return res.status(404).json({ message: "No tickets found" });
@@ -49,22 +69,7 @@ router.post(
         "INSERT INTO tickets (user_id, title, description, status, created_at) VALUES (?, ?, ?, 'open', NOW())",
         [userId, title, description]
       );
-      router.get("/user", authMiddleware, async (req, res) => {
-        try {
-          const userId = req.user.id;
-          const [user] = await db.query("SELECT id, username, email FROM users WHERE id = ?", [userId]);
-      
-          if (user.length === 0) {
-            return res.status(404).json({ message: "User not found" });
-          }
-      
-          res.json(user[0]);
-        } catch (error) {
-          console.error("Error fetching user:", error);
-          res.status(500).json({ message: "Server error" });
-        }
-      });
-      
+
       console.log("Database insert result:", result);
 
       if (result.affectedRows === 1) {
@@ -84,5 +89,56 @@ router.post(
     }
   }
 );
+
+router.put("/:id", authMiddleware, checkAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const [ticket] = await db.query("SELECT * FROM tickets WHERE id = ?", [id]);
+    if (ticket.length === 0) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    await db.query("UPDATE tickets SET status = ? WHERE id = ?", [status, id]);
+    res.json({ message: "Ticket status updated" });
+  } catch (error) {
+    console.error("Error updating ticket status:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.delete("/:id", authMiddleware, checkAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const [ticket] = await db.query("SELECT * FROM tickets WHERE id = ?", [id]);
+    if (ticket.length === 0) {
+      return res.status(404).json({ message: "Ticket not found" });
+    }
+
+    await db.query("DELETE FROM tickets WHERE id = ?", [id]);
+    res.json({ message: "Ticket deleted" });
+  } catch (error) {
+    console.error("Error deleting ticket:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+router.get("/user", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const [user] = await db.query("SELECT id, username, email FROM users WHERE id = ?", [userId]);
+
+    if (user.length === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json(user[0]);
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 export default router;
