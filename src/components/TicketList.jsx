@@ -1,133 +1,237 @@
 /* eslint-disable no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "../cssComponents/TicketList.css";
 
 const TicketList = () => {
   const [tickets, setTickets] = useState([]);
+  const [users, setUsers] = useState({});
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [selectedTickets, setSelectedTickets] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [userRole, setUserRole] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ticketsPerPage = 10;
+
+  const API_URL = "http://localhost:5000/api";
+
+  const fetchUserData = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) throw new Error("No authentication token found");
+
+      const { data } = await axios.get(`${API_URL}/user/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUserRole(data.role);
+      return data;
+    } catch (err) {
+      console.error("Error fetching user data:", err);
+      setError("Failed to fetch user data");
+      return null;
+    }
+  };
 
   const fetchTickets = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      if (!token) throw new Error("Unauthorized: No token found.");
+      if (!token) throw new Error("Unauthorized");
 
-      const response = await axios.get("http://localhost:5173/api/tickets", {
+      const { data } = await axios.get(`${API_URL}/tickets`, {
         headers: { Authorization: `Bearer ${token}` },
+        params: { status: statusFilter !== "all" ? statusFilter : undefined },
       });
 
-      console.log("Tickets fetched:", response.data);
+      setTickets(data.tickets);
 
-      const fetchedTickets = Array.isArray(response.data)
-        ? response.data
-        : [response.data];
+      // Ensure that data.users exists before using it
+      if (data.users && Array.isArray(data.users)) {
+        const usersMap = {};
+        data.users.forEach(user => {
+          usersMap[user.id] = user;
+        });
+        setUsers(usersMap);
+      } else {
+        console.error("Users data is not available or not an array");
+      }
 
-      setTickets(fetchedTickets);
       setLoading(false);
     } catch (err) {
-      console.error("Error fetching tickets:", err.message);
-      setError("Error fetching tickets: " + err.message);
+      console.error("Error fetching tickets:", err);
+      setError(err.response?.data?.message || "Error fetching tickets");
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        setError("No token found. Please log in again.");
-        setLoading(false);
-        return;
-      }
+    const initialize = async () => {
+      await fetchUserData();
       await fetchTickets();
     };
 
-    fetchData();
-  }, []);
+    initialize();
+  }, [statusFilter]);
 
-  const filteredTickets = tickets.filter(ticket => {
-    if (statusFilter === "All") return true;
-    const statusMapping = { "Բաց": "open", "Փակ": "closed" };
-    return ticket.status === statusMapping[statusFilter];
-  });
+  const handleStatusChange = async (ticketId, newStatus) => {
+    try {
+      const token = localStorage.getItem("authToken");
+      await axios.patch(
+        `${API_URL}/tickets/${ticketId}`,
+        { status: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-  const handleSelectTicket = (id) => {
-    setSelectedTickets((prevSelected) =>
-      prevSelected.includes(id)
-        ? prevSelected.filter((ticketId) => ticketId !== id)
-        : [...prevSelected, id]
-    );
+      setTickets(tickets.map(ticket =>
+        ticket.id === ticketId ? { ...ticket, status: newStatus } : ticket
+      ));
+    } catch (err) {
+      console.error("Error updating ticket status:", err);
+      setError(err.response?.data?.message || "Error updating ticket");
+    }
   };
 
   const handleDeleteSelected = async () => {
+    if (!window.confirm("Are you sure you want to delete selected tickets?")) return;
+
     try {
       const token = localStorage.getItem("authToken");
-      if (!token) throw new Error("Unauthorized: No token found.");
-
-      await axios.delete("http://localhost:5173/api/tickets", {
+      await axios.delete(`${API_URL}/tickets`, {
         headers: { Authorization: `Bearer ${token}` },
         data: { ticketIds: selectedTickets },
       });
 
-      console.log("Deleted tickets with IDs:", selectedTickets);
-
-      setTickets(tickets.filter(ticket => !selectedTickets.includes(ticket.id)));
+      setTickets(tickets.filter(t => !selectedTickets.includes(t.id)));
       setSelectedTickets([]);
     } catch (err) {
-      console.error("Error deleting tickets:", err.message);
-      setError("Error deleting tickets: " + err.message);
+      console.error("Error deleting tickets:", err);
+      setError(err.response?.data?.message || "Error deleting tickets");
     }
   };
 
-  return (
-    <div className="ticket-list">
-      <h2>Բոլոր տոմսերը</h2>
+  const filteredTickets = tickets.filter(ticket => {
+    const matchesSearch = ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         ticket.description.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
 
-      <div className="filters">
-        <label htmlFor="statusFilter">Տոմսի կարգավիճակ</label>
-        <select
-          id="statusFilter"
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-        >
-          <option value="All">Բոլոր</option>
-          <option value="Բաց">Բաց</option>
-          <option value="Փակ">Փակ</option>
-        </select>
+  const indexOfLastTicket = currentPage * ticketsPerPage;
+  const indexOfFirstTicket = indexOfLastTicket - ticketsPerPage;
+  const currentTickets = filteredTickets.slice(indexOfFirstTicket, indexOfLastTicket);
+  const totalPages = Math.ceil(filteredTickets.length / ticketsPerPage);
+
+  if (loading) return <div className="loading">Loading tickets...</div>;
+  if (error) return <div className="error">{error}</div>;
+
+  return (
+    <div className="ticket-list-container">
+      <div className="ticket-header">
+        <h2>Ticket Management System</h2>
+
+        <div className="controls">
+          <select 
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="status-filter"
+          >
+            <option value="all">All Statuses</option>
+            <option value="open">Open</option>
+            <option value="closed">Closed</option>
+          </select>
+
+          <input
+            type="text"
+            placeholder="Search tickets..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+
+          {userRole === "admin" && selectedTickets.length > 0 && (
+            <button 
+              onClick={handleDeleteSelected}
+              className="delete-btn"
+            >
+              Delete Selected ({selectedTickets.length})
+            </button>
+          )}
+        </div>
       </div>
 
-      {loading ? (
-        <p className="loading-message">Տոմսերը բեռնում են...</p>
-      ) : error ? (
-        <p className="error-message">{error}</p>
-      ) : filteredTickets.length > 0 ? (
-        <ul className="ticket-items">
-          {filteredTickets.map(ticket => (
-            <li key={ticket.id} className="ticket-item">
-              <input
-                type="checkbox"
-                checked={selectedTickets.includes(ticket.id)}
-                onChange={() => handleSelectTicket(ticket.id)}
-              />
-              <h3 className="ticket-title">{ticket.title}</h3>
-              <p className="ticket-description">{ticket.description}</p>
-              <p className="ticket-createdBy">Ստեղծող: {ticket.createdBy}</p>
-              <p className="ticket-createdAt">
-                Ստեղծվել է: {new Date(ticket.created_at).toLocaleString()}
-              </p>
-              <span className="ticket-status">
-                Կարգավիճակ: {ticket.status === "open" ? "Բաց" : "Փակ"}
-              </span>
-            </li>
-          ))}
-
-          <button onClick={handleDeleteSelected}>Ջնջել ընտրված</button>
-        </ul>
+      {currentTickets.length === 0 ? (
+        <div className="no-tickets">No tickets found</div>
       ) : (
-        <p className="no-tickets">Տոմսեր չկան։</p>
+        <>
+          <div className="ticket-grid">
+            {currentTickets.map(ticket => (
+              <div 
+                key={ticket.id} 
+                className={`ticket-card ${ticket.status}`}
+              >
+                <div className="ticket-header">
+                  <h3>{ticket.title}</h3>
+                  {userRole === "admin" && (
+                    <input
+                      type="checkbox"
+                      checked={selectedTickets.includes(ticket.id)}
+                      onChange={() => 
+                        setSelectedTickets(prev => 
+                          prev.includes(ticket.id)
+                            ? prev.filter(id => id !== ticket.id)
+                            : [...prev, ticket.id]
+                        )
+                      }
+                    />
+                  )}
+                </div>
+
+                <p className="ticket-description">{ticket.description}</p>
+
+                <div className="ticket-meta">
+                  <span className="creator">
+                    Created by: {users[ticket.user_id]?.username || "Unknown"}
+                  </span>
+                  <span className="date">
+                    {new Date(ticket.created_at).toLocaleString()}
+                  </span>
+                </div>
+
+                <div className="ticket-actions">
+                  <select
+                    value={ticket.status}
+                    onChange={(e) => handleStatusChange(ticket.id, e.target.value)}
+                    className="status-select"
+                  >
+                    <option value="open">Open</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="pagination">
+              <button 
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </button>
+
+              <span>Page {currentPage} of {totalPages}</span>
+
+              <button 
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

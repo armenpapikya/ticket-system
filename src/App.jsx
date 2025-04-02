@@ -10,7 +10,7 @@ import Home from './components/Home';
 import Register from './components/Register';
 import AdminPanel from './components/AdminPanel';
 import Profile from './components/Profile';
-import TicketForm from './components/TicketFrom';
+import TicketFrom from './components/TicketForm';
 import Footer from './components/Footer';
 import TicketList from './components/TicketList';
 
@@ -60,7 +60,7 @@ const App = () => {
                     <Route path="/login" element={<Login onLogin={login} />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/register" element={<Register />} />
-                    <Route path="/profile/create-ticket" element={<TicketForm />} />
+                    <Route path="/profile/create-ticket" element={<TicketFrom />} />
                     <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPanel /></ProtectedRoute>} />
                 </Routes>
                 {user && <TicketList />}

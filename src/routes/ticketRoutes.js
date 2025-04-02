@@ -15,7 +15,7 @@ const checkAdmin = async (req, res, next) => {
     next();
   } catch (error) {
     console.error("Error checking admin:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error while checking admin status" });
   }
 };
 
@@ -24,8 +24,7 @@ const router = express.Router();
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id;
-    const [tickets] = await db.query(`
-      SELECT tickets.id, tickets.user_id, tickets.title, tickets.description, tickets.status, tickets.created_at, users.username AS createdBy
+    const [tickets] = await db.query(`SELECT tickets.id, tickets.user_id, tickets.title, tickets.description, tickets.status, tickets.created_at, users.username AS createdBy
       FROM tickets
       LEFT JOIN users ON tickets.user_id = users.id
       WHERE tickets.user_id = ?`, [userId]);
@@ -37,8 +36,8 @@ router.get("/", authMiddleware, async (req, res) => {
     console.log("Fetched tickets:", tickets);
     res.json(tickets);
   } catch (error) {
-    console.error("Error fetching tickets:", error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error fetching tickets:", error.message);
+    res.status(500).json({ message: "Server error while fetching tickets" });
   }
 });
 
@@ -70,8 +69,6 @@ router.post(
         [userId, title, description]
       );
 
-      console.log("Database insert result:", result);
-
       if (result.affectedRows === 1) {
         return res.status(201).json({
           id: result.insertId,
@@ -84,8 +81,8 @@ router.post(
         return res.status(500).json({ message: "Failed to create ticket" });
       }
     } catch (error) {
-      console.error("Error creating ticket:", error);
-      res.status(500).json({ message: "Server error" });
+      console.error("Error creating ticket:", error.message);
+      res.status(500).json({ message: "Server error while creating ticket" });
     }
   }
 );
@@ -103,8 +100,8 @@ router.put("/:id", authMiddleware, checkAdmin, async (req, res) => {
     await db.query("UPDATE tickets SET status = ? WHERE id = ?", [status, id]);
     res.json({ message: "Ticket status updated" });
   } catch (error) {
-    console.error("Error updating ticket status:", error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error updating ticket status:", error.message);
+    res.status(500).json({ message: "Server error while updating ticket status" });
   }
 });
 
@@ -120,8 +117,8 @@ router.delete("/:id", authMiddleware, checkAdmin, async (req, res) => {
     await db.query("DELETE FROM tickets WHERE id = ?", [id]);
     res.json({ message: "Ticket deleted" });
   } catch (error) {
-    console.error("Error deleting ticket:", error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error deleting ticket:", error.message);
+    res.status(500).json({ message: "Server error while deleting ticket" });
   }
 });
 
@@ -136,8 +133,8 @@ router.get("/user", authMiddleware, async (req, res) => {
 
     res.json(user[0]);
   } catch (error) {
-    console.error("Error fetching user:", error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Error fetching user:", error.message);
+    res.status(500).json({ message: "Server error while fetching user data" });
   }
 });
 

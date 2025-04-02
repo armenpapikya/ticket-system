@@ -1,50 +1,43 @@
-/* eslint-disable no-undef */
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import connectDB from '../config/db.js';
+import express from 'express';
+import db from '../config/db.js';
+import authMiddleware from '../middleware/authMiddleware.js';
 
-const db = connectDB();
+const router = express.Router();
 
-export const createUser = async (username, email, password) => {
+router.get('/profile', authMiddleware, async (req, res) => {
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const query = 'INSERT INTO users (username, email, password) VALUES (?, ?, ?)';
-    console.log(`Executing query: ${query}`);
-    
-    const [result] = await db.promise().query(query, [username, email, hashedPassword]);
-    console.log('User created:', result);
-    return result;
-  } catch (error) {
-    console.error('Error creating user:', error.message || error);
-    throw new Error('Սխալ է տեղի ունեցել օգտատեր ստեղծելիս: Փորձեք ևս մեկ անգամ');
-  }
-};
+    console.log("User from authMiddleware:", req.user);
 
-export const getUserByEmail = async (email) => {
-  try {
-    const [results] = await db.promise().query('SELECT * FROM users WHERE email = ?', [email]);
-    
-    if (results.length === 0) {
-      return null;
+    const userId = req.user.id;
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID not found in the request' });
     }
-    
-    console.log('User fetch result:', results);
-    return results[0];
-  } catch (error) {
-    console.error('Error fetching user:', error.message || error);
-    throw new Error('Սխալ է տեղի ունեցել օգտատեր որոնելիս: Փորձեք ևս մեկ անգամ');
-  }
-};
 
-export const generateJWT = (userId, role) => {
-  try {
-    const payload = { userId, role };
-    const options = { expiresIn: '1h' };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, options);
-    console.log('Generated JWT:', token);
-    return token;
+    const [users] = await db.query(
+      'SELECT id, username, email, role FROM users WHERE id = ?',
+      [userId]
+    );
+
+    console.log("Fetched user from DB:", users);
+
+    if (!users.length) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const user = users[0];
+
+    const [tickets] = await db.query(
+      'SELECT id, title, status, created_at FROM tickets WHERE user_id = ? ORDER BY created_at DESC LIMIT 10',
+      [userId]
+    );
+
+    console.log("Fetched tickets:", tickets);
+
+    res.json({ user, tickets });
   } catch (error) {
-    console.error('Error generating JWT:', error.message || error);
-    throw new Error('Սխալ է տեղի ունեցել JWT ստեղծելիս');
+    console.error('🔥 Error fetching profile:', error);
+    res.status(500).json({ message: error.message || 'Internal server error' });
   }
-};
+});
+
+export default router;

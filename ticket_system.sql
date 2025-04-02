@@ -6,7 +6,7 @@ CREATE TABLE users (
   email VARCHAR(255) UNIQUE NOT NULL,
   username VARCHAR(255) NOT NULL,
   password VARCHAR(255) NOT NULL,
-  role ENUM('user', 'admin') DEFAULT 'user',
+  role ENUM('user', 'isAdmin') DEFAULT 'user',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

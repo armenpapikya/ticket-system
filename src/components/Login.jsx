@@ -29,16 +29,20 @@ const Login = ({ onLogin }) => {
         { headers: { "Content-Type": "application/json" } }
       );
 
-      if (response && response.data) {
-        const { token, user } = response.data;
-        localStorage.setItem("token", token);
-        localStorage.setItem("username", user.username);
-        localStorage.setItem("role", user.role);
-        onLogin(user.role);
-        console.log("Login successful:", response);
-      } else {
+      console.log("✅ Server Response:", response);
+      console.log("🔍 Response Data:", response.data);
+
+      if (response.status !== 200 || !response.data.accessToken) {
         setError("Մուտք գործումը ձախողվեց, տվյալներ վերադարձված չեն:");
+        return;
       }
+
+      const { accessToken, user } = response.data;
+      localStorage.setItem("authToken", accessToken);
+      localStorage.setItem("username", user.username);
+      localStorage.setItem("role", user.role);
+      onLogin(user.role);
+      console.log("Login successful:", response);
     } catch (error) {
       console.error("Login error:", error);
       if (error.response && error.response.data) {
@@ -60,7 +64,7 @@ const Login = ({ onLogin }) => {
           type="text"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
-          placeholder="Էլ․ հասցե"
+          placeholder="Օգտանուն կամ Էլ․ հասցե"
           required
         />
         <input
