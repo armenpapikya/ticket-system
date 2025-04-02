@@ -106,6 +106,10 @@ app.patch('/api/tickets/:id', authenticate, async (req, res) => {
 
     console.log(`Updating ticket with ID: ${id} to status: ${status}`);
 
+    if (!status) {
+      return res.status(400).json({ message: 'Status is required' });
+    }
+
     const [result] = await pool.query('UPDATE tickets SET status = ? WHERE id = ?', [status, id]);
 
     if (result.affectedRows === 0) {
@@ -115,7 +119,7 @@ app.patch('/api/tickets/:id', authenticate, async (req, res) => {
     res.json({ message: 'Ticket updated successfully' });
   } catch (err) {
     console.error('Error updating ticket:', err);
-    res.status(500).json({ message: 'Internal server error' });
+    res.status(500).json({ message: 'Internal server error', error: err.message });
   }
 });
 
@@ -165,21 +169,6 @@ app.get('/api/tickets', authenticate, async (req, res) => {
   } catch (err) {
     console.error('Error fetching tickets:', err);
     res.status(500).json({ message: 'Error fetching tickets' });
-  }
-});
-
-app.patch('/api/tickets/:id', authenticate, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status } = req.body;
-    const [result] = await pool.query('UPDATE tickets SET status = ? WHERE id = ?', [status, id]);
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Ticket not found' });
-    }
-    res.json({ message: 'Ticket updated successfully' });
-  } catch (err) {
-    console.error('Error updating ticket:', err);
-    res.status(500).json({ message: 'Internal server error' });
   }
 });
 

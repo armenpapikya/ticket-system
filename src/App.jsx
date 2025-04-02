@@ -11,7 +11,6 @@ import Register from './components/Register';
 import AdminPanel from './components/AdminPanel';
 import Profile from './components/Profile';
 import TicketFrom from './components/TicketForm';
-import Footer from './components/Footer';
 import TicketList from './components/TicketList';
 
 const AuthContext = createContext();
@@ -64,7 +63,6 @@ const App = () => {
                     <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPanel /></ProtectedRoute>} />
                 </Routes>
                 {user && <TicketList />}
-                <Footer />
             </Router>
         </AuthContext.Provider>
     );

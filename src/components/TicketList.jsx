@@ -78,11 +78,14 @@ const TicketList = () => {
   const handleStatusChange = async (ticketId, newStatus) => {
     try {
       const token = localStorage.getItem("authToken");
-      await axios.patch(
+      const response = await axios.patch(
         `${API_URL}/tickets/${ticketId}`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      // Log the response to see what the backend sends
+      console.log('Status update response:', response.data);
 
       setTickets(tickets.map(ticket =>
         ticket.id === ticketId ? { ...ticket, status: newStatus } : ticket

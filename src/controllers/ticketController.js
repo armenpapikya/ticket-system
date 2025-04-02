@@ -47,6 +47,10 @@ export const createTicket = async (req, res) => {
   }
 
   try {
+    if (!title || !description) {
+      return res.status(400).json({ message: "Title and description are required" });
+    }
+
     const [result] = await db.query(
       "INSERT INTO tickets (user_id, title, description, status) VALUES (?, ?, ?, 'open')",
       [userId, title, description]
@@ -62,8 +66,13 @@ export const updateTicketStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   const userId = req.user?.id;
+
   if (!userId) {
     return res.status(401).json({ message: "Authorization required" });
+  }
+
+  if (isNaN(id)) {
+    return res.status(400).json({ message: "Անվավեր տոմսի ID" });
   }
 
   try {
@@ -73,6 +82,8 @@ export const updateTicketStatus = async (req, res) => {
         message: "Միայն ադմինները կարող են թարմացնել տոմսի կարգավիճակը",
       });
     }
+
+    console.log("Executing SQL query:", "UPDATE tickets SET status = ? WHERE id = ?", [status, id]);
 
     const [result] = await db.query("UPDATE tickets SET status = ? WHERE id = ?", [status, id]);
     if (result.affectedRows === 0) {
@@ -88,8 +99,13 @@ export const updateTicketStatus = async (req, res) => {
 export const closeTicket = async (req, res) => {
   const { id } = req.params;
   const userId = req.user?.id;
+
   if (!userId) {
     return res.status(401).json({ message: "Authorization required" });
+  }
+
+  if (isNaN(id)) {
+    return res.status(400).json({ message: "Անվավեր տոմսի ID" });
   }
 
   try {
@@ -97,6 +113,8 @@ export const closeTicket = async (req, res) => {
     if (!isAdmin) {
       return res.status(403).json({ message: "Միայն ադմինները կարող են փակել տոմսերը" });
     }
+
+    console.log("Executing SQL query:", "UPDATE tickets SET status = 'closed' WHERE id = ?", [id]);
 
     const [result] = await db.query("UPDATE tickets SET status = 'closed' WHERE id = ?", [id]);
     if (result.affectedRows === 0) {
@@ -112,8 +130,13 @@ export const closeTicket = async (req, res) => {
 export const deleteTicket = async (req, res) => {
   const { id } = req.params;
   const userId = req.user?.id;
+
   if (!userId) {
     return res.status(401).json({ message: "Authorization required" });
+  }
+
+  if (isNaN(id)) {
+    return res.status(400).json({ message: "Անվավեր տոմսի ID" });
   }
 
   try {
@@ -121,6 +144,8 @@ export const deleteTicket = async (req, res) => {
     if (!isAdmin) {
       return res.status(403).json({ message: "Միայն ադմինները կարող են ջնջել տոմսերը" });
     }
+
+    console.log("Executing SQL query:", "DELETE FROM tickets WHERE id = ?", [id]);
 
     const [result] = await db.query("DELETE FROM tickets WHERE id = ?", [id]);
     if (result.affectedRows === 0) {

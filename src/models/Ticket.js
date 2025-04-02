@@ -42,13 +42,13 @@ export const getTicketsByUserId = async (userId) => {
   }
 };
 
-export const updateTicketStatus = async (ticketId, status) => {
+export const updateTicketStatus = async (Id, status) => {
   try {
-    validateFields({ ticketId, status });
+    validateFields({ Id, status });
 
     const [result] = await db.query(
       'UPDATE tickets SET status = ? WHERE id = ?',
-      [status, ticketId]
+      [status, Id]
     );
 
     if (result.affectedRows === 0) {
