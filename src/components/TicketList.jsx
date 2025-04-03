@@ -84,7 +84,6 @@ const TicketList = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Log the response to see what the backend sends
       console.log('Status update response:', response.data);
 
       setTickets(tickets.map(ticket =>
