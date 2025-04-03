@@ -47,7 +47,6 @@ const TicketList = () => {
 
       setTickets(data.tickets);
 
-      // Ensure that data.users exists before using it
       if (data.users && Array.isArray(data.users)) {
         const usersMap = {};
         data.users.forEach(user => {
