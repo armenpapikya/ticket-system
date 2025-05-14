@@ -1,5 +1,6 @@
 {
   "name": "ticket-system",
+<<<<<<< HEAD
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -80,4 +81,35 @@
   "keywords": [],
   "author": "",
   "license": "ISC"
+=======
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "dependencies": {
+    "esbuild": "^0.25.4",
+    "fdir": "^6.4.4",
+    "nanoid": "^3.3.11",
+    "picocolors": "^1.1.1",
+    "picomatch": "^4.0.2",
+    "postcss": "^8.5.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "rollup": "^4.40.2",
+    "scheduler": "^0.26.0",
+    "source-map-js": "^1.2.1",
+    "tinyglobby": "^0.2.13",
+    "vite": "^6.3.5"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+>>>>>>> 4a6d31a (Initial commit)
 }
