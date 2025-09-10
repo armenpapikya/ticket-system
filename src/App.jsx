@@ -27,6 +27,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 
 const App = () => {
     const [user, setUser] = useState(null);
+    const [refreshTickets, setRefreshTickets] = useState(false);
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -50,6 +51,10 @@ const App = () => {
         setUser(null);
     };
 
+    const handleTicketCreated = () => {
+        setRefreshTickets(prev => !prev);
+    };
+
     return (
         <AuthContext.Provider value={{ user, login, logout }}>
             <Router>
@@ -59,10 +64,10 @@ const App = () => {
                     <Route path="/login" element={<Login onLogin={login} />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/register" element={<Register />} />
-                    <Route path="/profile/create-ticket" element={<TicketFrom />} />
+                    <Route path="/profile/create-ticket" element={<TicketFrom onCreate={handleTicketCreated} />} />
                     <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPanel /></ProtectedRoute>} />
                 </Routes>
-                {user && <TicketList />}
+                {user && <TicketList refresh={refreshTickets} />}
             </Router>
         </AuthContext.Provider>
     );

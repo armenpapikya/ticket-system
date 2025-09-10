@@ -1,7 +1,6 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable no-undef */
 import express from 'express';
-import mysql from 'mysql2/promise';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
@@ -10,6 +9,7 @@ import morgan from 'morgan';
 import helmet from 'helmet';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import db from './config/db.js';
 
 dotenv.config();
 
@@ -33,16 +33,6 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
-
 const authenticate = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'Authentication token required' });
@@ -65,7 +55,7 @@ app.post('/api/auth/login', async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
-    const [users] = await pool.query(
+    const users = await db.query(
       'SELECT id, email, username, password, role FROM users WHERE email = ?',
       [email]
     );
@@ -78,7 +68,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid email or password' });
     }
     const accessToken = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { id: user.id, email: user.email, username: user.username, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
@@ -87,7 +77,11 @@ app.post('/api/auth/login', async (req, res) => {
       process.env.REFRESH_SECRET,
       { expiresIn: '7d' }
     );
-    res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true, sameSite: 'Strict' });
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'Strict'
+    });
     res.json({
       message: 'Login successful',
       accessToken,
@@ -103,15 +97,10 @@ app.patch('/api/tickets/:id', authenticate, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-
-    console.log(`Updating ticket with ID: ${id} to status: ${status}`);
-
-    const [result] = await pool.query('UPDATE tickets SET status = ? WHERE id = ?', [status, id]);
-
+    const result = await db.query('UPDATE tickets SET status = ? WHERE id = ?', [status, id]);
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: 'Ticket not found' });
     }
-
     res.json({ message: 'Ticket updated successfully' });
   } catch (err) {
     console.error('Error updating ticket:', err);
@@ -119,18 +108,20 @@ app.patch('/api/tickets/:id', authenticate, async (req, res) => {
   }
 });
 
-
-app.post('/api/auth/refresh', (req, res) => {
+app.post('/api/auth/refresh', async (req, res) => {
   const token = req.cookies.refreshToken;
   if (!token) return res.status(401).json({ message: 'Refresh token required' });
   try {
     const decoded = jwt.verify(token, process.env.REFRESH_SECRET);
+    const users = await db.query('SELECT id, email, username, role FROM users WHERE id = ?', [decoded.id]);
+    if (users.length === 0) return res.status(404).json({ message: 'User not found' });
+    const user = users[0];
     const newAccessToken = jwt.sign(
-      { id: decoded.id },
+      { id: user.id, email: user.email, username: user.username, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
     );
-    res.json({ accessToken: newAccessToken });
+    res.json({ accessToken: newAccessToken, user });
   } catch (err) {
     console.error('Refresh token error:', err);
     res.status(403).json({ message: 'Invalid refresh token' });
@@ -160,26 +151,82 @@ app.get('/api/tickets', authenticate, async (req, res) => {
       query += ' AND status = ?';
       queryParams.push(status);
     }
-    const [tickets] = await pool.query(query, queryParams);
-    res.json({ tickets });
+    const tickets = await db.query(query, queryParams);
+
+    // Ստանում ենք բոլոր user_id-ները
+    const userIds = [...new Set(tickets.map(t => t.user_id))];
+    let users = [];
+    if (userIds.length > 0) {
+      const placeholders = userIds.map(() => '?').join(',');
+      users = await db.query(
+        `SELECT id, username FROM users WHERE id IN (${placeholders})`,
+        userIds
+      );
+    }
+
+    res.json({ tickets, users });
   } catch (err) {
     console.error('Error fetching tickets:', err);
     res.status(500).json({ message: 'Error fetching tickets' });
   }
 });
 
-app.patch('/api/tickets/:id', async (req, res) => {
+app.post('/api/tickets', authenticate, async (req, res) => {
   try {
-    const ticket = await Ticket.findById(req.params.id);
-    if (!ticket) {
-      return res.status(404).json({ message: 'Ticket not found' });
+    const { title, description } = req.body;
+    const userId = req.user.id;
+    if (!title || !description) {
+      return res.status(400).json({ message: 'Title and description are required' });
     }
-
-    ticket.status = req.body.status;
-    await ticket.save();
-    res.json(ticket);
+    const result = await db.query(
+      'INSERT INTO tickets (user_id, title, description) VALUES (?, ?, ?)',
+      [userId, title, description]
+    );
+    res.status(201).json({ id: result.insertId, title, description, user_id: userId, status: 'open' });
   } catch (err) {
-    console.error('Error updating ticket:', err);
+    console.error('Error creating ticket:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.delete('/api/tickets', authenticate, async (req, res) => {
+  try {
+    const { ticketIds } = req.body;
+    if (!Array.isArray(ticketIds) || ticketIds.length === 0) {
+      return res.status(400).json({ message: 'No ticket IDs provided' });
+    }
+    const placeholders = ticketIds.map(() => '?').join(',');
+    await db.query(
+      `DELETE FROM tickets WHERE id IN (${placeholders})`,
+      ticketIds
+    );
+    res.json({ message: 'Tickets deleted successfully' });
+  } catch (err) {
+    console.error('Error deleting tickets:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const { email, password, username } = req.body;
+    if (!email || !password || !username) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+    // Ստուգում ենք, որ email-ը դեռ չկա
+    const existing = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+    if (existing.length > 0) {
+      return res.status(409).json({ message: 'Email already registered' });
+    }
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await db.query(
+      'INSERT INTO users (email, username, password) VALUES (?, ?, ?)',
+      [email, username, hashedPassword]
+    );
+    res.status(201).json({ message: 'Registration successful' });
+  } catch (err) {
+    console.error('Registration error:', err);
     res.status(500).json({ message: 'Internal server error' });
   }
 });

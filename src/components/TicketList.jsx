@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "../cssComponents/TicketList.css";
+import PropTypes from 'prop-types';
 
-const TicketList = () => {
+const TicketList = ({ refresh }) => {
   const [tickets, setTickets] = useState([]);
   const [users, setUsers] = useState({});
   const [error, setError] = useState("");
@@ -20,10 +21,10 @@ const TicketList = () => {
 
   const fetchUserData = async () => {
     try {
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem("token");
       if (!token) throw new Error("No authentication token found");
 
-      const { data } = await axios.get(`${API_URL}/user/me`, {
+      const { data } = await axios.get(`/api/user/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUserRole(data.role);
@@ -37,10 +38,10 @@ const TicketList = () => {
 
   const fetchTickets = async () => {
     try {
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem("token");
       if (!token) throw new Error("Unauthorized");
 
-      const { data } = await axios.get(`${API_URL}/tickets`, {
+      const { data } = await axios.get(`/api/tickets`, {
         headers: { Authorization: `Bearer ${token}` },
         params: { status: statusFilter !== "all" ? statusFilter : undefined },
       });
@@ -72,13 +73,13 @@ const TicketList = () => {
     };
 
     initialize();
-  }, [statusFilter]);
+  }, [statusFilter, refresh]);
 
   const handleStatusChange = async (ticketId, newStatus) => {
     try {
-      const token = localStorage.getItem("authToken");
+      const token = localStorage.getItem("token");
       const response = await axios.patch(
-        `${API_URL}/tickets/${ticketId}`,
+        `/api/tickets/${ticketId}`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -98,8 +99,8 @@ const TicketList = () => {
     if (!window.confirm("Are you sure you want to delete selected tickets?")) return;
 
     try {
-      const token = localStorage.getItem("authToken");
-      await axios.delete(`${API_URL}/tickets`, {
+      const token = localStorage.getItem("token");
+      await axios.delete(`/api/tickets`, {
         headers: { Authorization: `Bearer ${token}` },
         data: { ticketIds: selectedTickets },
       });
@@ -236,6 +237,10 @@ const TicketList = () => {
       )}
     </div>
   );
+};
+
+TicketList.propTypes = {
+  refresh: PropTypes.bool
 };
 
 export default TicketList;

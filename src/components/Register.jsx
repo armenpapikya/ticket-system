@@ -13,7 +13,7 @@ const Register = ({ onRegister }) => {
   const [loading, setLoading] = useState(false);
 
   const passwordValidation = (password) => {
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*]).{8,}$/;
     return passwordRegex.test(password);
   };
 

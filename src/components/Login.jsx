@@ -38,7 +38,7 @@ const Login = ({ onLogin }) => {
       }
 
       const { accessToken, user } = response.data;
-      localStorage.setItem("authToken", accessToken);
+      localStorage.setItem("token", accessToken);
       localStorage.setItem("username", user.username);
       localStorage.setItem("role", user.role);
       onLogin(user.role);

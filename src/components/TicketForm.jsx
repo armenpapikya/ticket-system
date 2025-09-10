@@ -46,7 +46,7 @@ const TicketForm = ({ onCreate }) => {
       setLoading(true);
 
       const response = await axios.post(
-        'http://localhost:5000/api/tickets',
+        '/api/tickets',
         { title, description },
         { headers: { Authorization: `Bearer ${token}` } }
       );
